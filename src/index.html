@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Untitled</title>
+    <script src="libraries/p5.js" type="text/javascript"></script>
+
+    <!-- Uncomment the lines below to include extra p5 libraries -->
+    <!--<script src="libraries/p5.dom.js" type="text/javascript"></script>-->
+    <script src="libraries/p5.sound.js" type="text/javascript"></script>
+    <script src="libraries/sha1.js" type="text/javascript"></script>
+    <script src="libraries/oauth.js" type="text/javascript"></script>
+    <!--<script src="libraries/twitter.js" type="text/javascript"></script>-->
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+
+    <param id="editorStatus" value="notedit"></param>
+
+    <script src="sketch.js" type="text/javascript"></script>
+
+    <!-- 投稿ボタン-->
+    <a href="https://twitter.com/intent/tweet?button_hashtag=NotesNuggetter&text="
+       class="twitter-hashtag-button" data-size="large" id="foo">
+       Tweet #Notes-nuggetter
+    </a>
+    <script type="text/javascript">
+        var poo = document.getElementById('foo');
+            poo.href="https://twitter.com/intent/tweet?button_hashtag=NotesNagetter&text="+text;
+
+        !function(d,s,id){
+              var js,
+              fjs=d.getElementsByTagName(s)[0],
+              p=/^http:/.test(d.location)?'http':'https';
+              if(!d.getElementById(id)){
+                js=d.createElement(s);
+                js.id=id;
+                js.src=p+'://platform.twitter.com/widgets.js';
+                fjs.parentNode.insertBefore(js,fjs);
+              }
+            }(document, 'script', 'twitter-wjs');
+
+
+
+
+    </script>
+
+
+
+
+
+  </head>
+
+  <body style = "margin:0; padding:0">
+
+    <form name="hoge" id="id_hoge" action="">
+      <button id="つなげて再生" onClick="joint_play();return false;">つなげて再生</button>
+      <!-- <input name="textbox1" id="id_textbox" type="text" value="" /> -->
+      <SELECT id="tracklist" name="tracklist" onChange="startLoad();return false;">
+        <OPTION value="Renew" selected>Renew</OPTION>
+        <OPTION value="Demo1">Demo1</OPTION>
+        <OPTION value="Demo2">Demo2</OPTION>
+        <OPTION value="Demo3">Demo3</OPTION>
+      </SELECT>
+
+
+    </form>
+
+    <!-- CSS スタイルの設定 ↓ -->
+    <style type="text/css">
+
+        #twitter {
+            /* サイズ */
+            width: 1000px;
+            height: 500px;
+            /* 内部コンテンツが増えた場合に、スクロールさせる */
+            overflow: auto;
+            color: #666; /* 文字の色 */
+            border: 1px solid #CCC; /* 枠の色 */
+        }
+
+        .Tweet表示エリア {
+            font-size: 12px; /*文字のサイズ*/
+        }
+
+    </style>
+
+
+
+    <!-- UI部分 ↓ -->
+    <div id="twitter">
+        <div class="Tweet表示エリア">
+            ここにツイートを表示する
+        </div>
+    </div>
+
+    <input id="キーワード入力欄" placeholder="検索したいキーワード" value="#NotesNuggetter"></input> <!-- テキストボックス -->
+    <button id="検索ボタン" onClick="startLoad();return false;">検索!</button> <!-- 検索実行用ボタン -->
+
+
+    <!-- 処理部分を記述 ↓ -->
+    <script type="text/javascript">
+
+        var consumerKey    = "v1wcvS70vL7XqFt1rzJojnFlK";
+        var consumerSecret = "o8yHvNjHQtr5OxBUD6Ssc0MjNtLVgQYalTVx7LXCXgcGxZgdne";
+        var accessToken    = "214009595-nBsMaPBEVtkhFN0ftjvSnq3vVIYAavY6vOOQqD5c";
+        var tokenSecret    = "wDny4yAmj0T9WT3gWrFBA1XVqIBGnsES8H0CzWwABfSdu";
+
+        var count = 10; // 表示する件数
+        
+        var renewFlag = 0; // 0: not renew, 1: renew
+
+        // Twitter APIを使用してTweetを取得する部分
+        // function getTwitter(action, options) {
+        function getTwitter(action, keywords) {
+
+            var accessor = {
+                consumerSecret: consumerSecret,
+                tokenSecret: tokenSecret
+            };
+
+            // 送信するパラメータを連想配列で作成
+            var message = {
+                method: "GET", // リクエストの種類
+                action: action,
+                parameters: {
+                    oauth_version: "1.0",
+                    oauth_signature_method: "HMAC-SHA1",
+                    oauth_consumer_key: consumerKey, // コンシューマーキー
+                    oauth_token: accessToken, // アクセストークン
+                    count: count, // 取得する件数
+                    "q": keywords, // 検索するキーワード
+                    "lang": "ja", // 日本語に設定
+                    "result_type": "recent", // 最新の情報を取得するように設定
+                    callback: "update" // 取得したデータをupdate関数に渡すよう設定
+                }
+            };
+
+            // OAuth認証関係
+            OAuth.setTimestampAndNonce(message);
+            OAuth.SignatureMethod.sign(message, accessor);
+            var url = OAuth.addToURL(message.action, message.parameters);
+
+            // ajaxによる通信
+            $.ajax({
+                type: message.method,
+                url: url, // リクエスト先のURL
+                dataType: "jsonp",
+                jsonp: false,
+                cache: true,
+            });
+        }
+
+        // UIの更新
+        function update(data){ // 引数(data)に取得したデータが入ってくる
+            text_split = new Array();
+            $(".Tweet表示エリア").empty(); // 表示エリアを空にする
+            result = data.statuses; // 取得したデータから、メソッドチェーンで必要なものを取得
+
+            result.reverse();
+            if(renewFlag == 0){ //Not renew. Play music.
+            for( var l = result.length-1; l >= 0; l-- ) {
+                var name = result[l].user.name; // ツイートした人の名前
+                var imgsrc = result[l].user.profile_image_url; // ツイートした人のプロフィール画像
+                var content = result[l].text;// ツイートの内容
+                var updated = result[l].created_at; // ツイートした時間
+
+                // Tweet表示エリアに取得したデータを追加していく
+                $(".Tweet表示エリア").append('<div id="tweet' + l + '" style="background-color:white;"><img src="'+imgsrc+'" />' + '<p>' + name + ' | ' + content + ' | ' + updated + '</p></div>');
+                //$(".Tweet表示エリア").append('<img src="'+imgsrc+'" />' + '<p>' + name + ' | ' + content + ' | ' + updated + '</p>');
+
+
+                //alert("表示完了");
+                }
+
+            joint_play();
+            }
+            else //Renew pulldown menu list.
+            {
+
+                var loop;
+                var hushtag;
+                var duplicateFlag;
+            
+                $("#tracklist").empty();
+                var option = document.createElement("option");
+                option.value = "Renew";
+                option.text = "Renew";
+                $("#tracklist").append(option);
+                
+                for( var l = result.length-1; l >= 0; l-- ) {
+                    var content = result[l].text;// ツイートの内容
+                    //alert(content);
+                    var start = content.indexOf("#");
+                    hushtag = "";
+                    for(loop = start; loop < content.length; loop++){
+                        if(content.substr(loop,1) == " "){
+                            break;
+                        }
+                        hushtag += content.substr(loop,1);    
+                    }
+                    //alert(hushtag);
+                    if(hushtag == "#NotesNuggetter")
+                    {
+                        hushtag = "";
+                        start = content.indexOf("#", loop);
+                        for(loop = start; loop < content.length; loop++){
+                        if(content.substr(loop,1) == " "){
+                            break;
+                            }
+                        hushtag += content.substr(loop,1); 
+                        }
+                    }
+                    
+                    duplicateFlag = 0;
+                    //todo
+                    var tracklist = document.getElementById("tracklist");
+                    console.log("options = " + tracklist.options.length);
+                    
+                    for(var loop2 = 0; loop2 < tracklist.options.length; loop2++)
+                    {
+                        console.log(tracklist.options[loop2].text);
+                        if(tracklist.options[loop2].text == hushtag.substr(1,hushtag.length-1))
+                        {
+                            duplicateFlag = 1;
+                            break;
+                        }
+                    }
+                    //if($("#tracklist").find(hushtag)==false)                    
+                    
+                    if(duplicateFlag == 0)
+                    {
+                        //$("#tracklist").append(hushtag.substr(1,hushtag.length-1));
+                        var option = document.createElement("option");
+                        option.value = hushtag.substr(1,hushtag.length-1);
+                        option.text = hushtag.substr(1,hushtag.length-1);
+                        $("#tracklist").append(option);
+                    }
+                        
+                }           
+            }
+        }
+
+        function joint_play(){
+          for( var l = result.length-1; l >= 0; l-- ) {
+            var tweet = document.getElementById("tweet" + l);
+            tweet.style['background-color']="white";
+          }
+          if(!result){
+            //alert("ツイートデータが存在しません");
+            return;
+          }
+          for( var l = 0; l < result.length; l++ ) {
+              var name = result[l].user.name; // ツイートした人の名前
+              var imgsrc = result[l].user.profile_image_url; // ツイートした人のプロフィール画像
+              var content = result[l].text;// ツイートの内容
+              var updated = result[l].created_at; // ツイートした時間
+              var time = "";
+
+              var contents;//勝手につけた
+              start = result[l].text.indexOf( "[" );
+              end = result[l].text.indexOf( "]" );
+
+              if(start == -1 || end == -1 ){
+                  //alert(l+"番目のツイートは再生できません");
+              }
+
+              else{
+
+                  contents = result[l].text.substring( start+1, end );
+                  console.log("contents = " + contents);
+
+                  //alert(contents);
+
+                  //数列を4桁ごとに分割
+                  for(var i = 0; i<contents.length/4; i++){
+                      var j = i * 4;
+                      var p = contents.slice(j, j + 4);
+                      text_split[i]= p;
+                      //alert(text_split[i]);//ここまでOK
+                  }
+
+                  //分割した数列と音の番号が一致するか照合
+                  for(var k = 0; k<contents.length/4; k++){
+                    for(i=0; i<KEYBOARD_NUMBER ;i++){
+                      for(j=0;j<BAR_NUMBER*4*4 ;j++){
+                          if(text_split[k]==note[i][j]){
+                              text_flag[i][j+(BAR_NUMBER*4*4)*l] = 1;
+                              //alert(text_flag[i][j+(BAR_NUMBER*4*4)*2*l]);//ここまでOKOK
+                          }
+                      }
+                    }
+                  }
+
+              }
+
+        }
+        console.log("start playSound");
+        var tempo = 120;
+        b=0;
+        var tweetId = 0;
+
+        var editorStatus = document.getElementById('editorStatus');
+        editorStatus.value = "joint_playing";
+        clearInterval(playsoundtimer);
+        playsoundtimer = setInterval(function(){
+          if(b % 32 == 0 && b != 0){
+            tweetId++;
+          }
+          var tweetPhrase = 'tweet' + tweetId;
+          var tweet = document.getElementById(tweetPhrase);
+          tweet.style['background-color']="cyan";
+
+            for(i=0; i<KEYBOARD_NUMBER ;i++){
+                if(text_flag[i][b] == 1){
+                    note_sound[i].play();
+                    console.log("playSound");
+                }
+            }
+            b=b+1;
+
+            if(b>(BAR_NUMBER*4*4)*(2*result.length - 1)+10){
+                clearInterval(playsoundtimer);
+                for(i=0; i<KEYBOARD_NUMBER ;i++){
+                  for(j=0; j<(BAR_NUMBER*4*4)*(2*result.length - 1) ;j++){
+                    text_flag[i][j] = 0;
+                  }
+                }
+                    //alert("再生終了");
+            }
+        },60000/(tempo*4));
+        //alert("ループ");
+      }
+
+
+        function mouseClicked(){
+          if(0 <= mouseX && windowWidth >= mouseX && 0 <= mouseY && windowHeight >= mouseY){
+            clearInterval(playsoundtimer);
+            for(i=0; i<KEYBOARD_NUMBER ;i++){
+              for(j=0; j<(BAR_NUMBER*4*4)*(2*result.length - 1) ;j++){
+                text_flag[i][j] = 0;
+              }
+            }
+          }
+        }
+
+        function startLoad(){
+          var keywords;
+          var editorStatus = document.getElementById('editorStatus');
+          if(editorStatus.value != "notedit"){
+            clearInterval(playsoundtimer);
+            for(i=0; i<KEYBOARD_NUMBER ;i++){
+              for(j=0; j<(BAR_NUMBER*4*4)*(2*result.length - 1) ;j++){
+                text_flag[i][j] = 0;
+              }
+            }
+          }
+
+          // idにキーワード入力欄と指定されている input要素に入力されている値を取得
+            if($("#tracklist").val() == "Renew"){
+                keywords = $("#キーワード入力欄").val();
+                renewFlag = 1;
+            }
+            else
+            {
+                keywords = $("#キーワード入力欄").val() + " #" + $("#tracklist").val();
+                renewFlag = 0;
+            }
+                console.log("keywords = " + keywords);
+
+          // keywordsに何も入力されていなかった場合の処理
+          if(keywords == ""){
+              //alert("何も入力されていないようです。"); // メッセージを表示
+              return; // 処理を中断
+          }
+          else{
+              //alert(keywords + "　が入力されています。");
+          }
+
+          // リクエスト先のURL
+          var url = "https://api.twitter.com/1.1/search/tweets.json";
+
+          // Tweet検索関数の呼び出し
+          getTwitter(url, keywords);
+        }
+
+        // ウィンドウを読み込み後に実行される
+        $(window).load(function(){
+          playsoundtimer = setInterval();
+
+        });
+
+
+    </script>
+
+  </body>
+</html>
