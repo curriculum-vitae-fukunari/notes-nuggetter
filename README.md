@@ -5,14 +5,14 @@ Twitter等のSNSによるコミュニケーションおよび手軽な音楽制�
 GUIから創作したフレーズを文字コード化したものをTwitterに投稿し、他のユーザが投稿したフレーズを時系列的・非同期的に鑑賞することができます。
 このシステムにより様々なユーザどうしが自由にそれぞれ音楽を結合し合い、新しい音楽が生まれていくことが期待されます。将来的には、ユーザ同士の音楽の時系列的な結合だけでなく、音楽的に調和のとれた状態で同時に再生できる機構をも付加したいと考えております。
 
-<table border="0">
-  <tr>
-    <td>
-      <img src="./img/Notes-nugetterのシステムイメージ.png" width=400>
+<table style="border-style: none;">
+  <tr style="border-style: none;">
+    <td style="border-style: none;">
+      <img src="./img/system.png" width=400>
     </td>
-    <td>
-      <img src="./img/Generatorによるフレーズ作成イメージ.png" width=200>
-      <img src="./img/テキストコードのイメージ.png" width=200>
+    <td style="border-style: none;">
+      <img src="./img/generator.png" width=200>
+      <img src="./img/textcode.png" width=200>
     </td>
   </tr>
 </table>
